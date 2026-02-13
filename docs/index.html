@@ -1,0 +1,985 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Scala: A Deep Dive</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/dracula.min.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" /><style>
+  .reveal pre code {
+    max-height: 520px;
+    font-size: 0.52em;
+    line-height: 1.35;
+    padding: 1em;
+  }
+  .reveal h1 { font-size: 2.0em; }
+  .reveal h2 { font-size: 1.3em; margin-bottom: 0.5em; }
+  .reveal ul { font-size: 0.8em; }
+  .reveal li { margin-bottom: 0.3em; }
+  .reveal .slides section {
+    text-align: left;
+  }
+  .reveal .slides section h1,
+  .reveal .slides section h2,
+  .reveal .slides section h3 {
+    text-align: center;
+  }
+  .reveal table {
+    font-size: 0.7em;
+    margin: 0 auto;
+  }
+  .reveal table th,
+  .reveal table td {
+    padding: 0.3em 0.8em;
+    border: 1px solid #666;
+  }
+  .reveal blockquote {
+    font-size: 0.9em;
+    padding: 1em;
+    width: 90%;
+  }
+  </style></head><body><div class="reveal"><div class="slides"><section><section><h1>Scala: A Deep Dive</h1><h3>From Type System to Ecosystem</h3></section><section><h2>What is Scala?</h2><ul><li class="fragment">Created by <b>Martin Odersky</b> at EPFL, Lausanne (2003)</li><li class="fragment">Name = <b>Sca</b>lable <b>La</b>nguage</li><li class="fragment">Runs on JVM, JavaScript (Scala.js), and Native</li><li class="fragment">Influenced by Java, ML, Haskell, Erlang, Smalltalk</li><li class="fragment">Unifies object-oriented and functional programming</li></ul></section><section><h2>Scala Timeline</h2><ul><li class="fragment"><b>2003</b> — First release at EPFL</li><li class="fragment"><b>2006</b> — Scala 2.0: improved type system</li><li class="fragment"><b>2013</b> — Scala 2.10: macros, string interpolation, value classes</li><li class="fragment"><b>2016</b> — Scala 2.12: Java 8 lambda interop</li><li class="fragment"><b>2019</b> — Scala 2.13: new collections library</li><li class="fragment"><b>2021</b> — Scala 3.0: DOT calculus, new syntax, enums, given/using</li><li class="fragment"><b>2023+</b> — Scala 3.3 LTS: stable long-term support</li></ul></section><section><h2>Design Philosophy</h2><ul><li class="fragment">Every value is an object, every operation is a method call</li><li class="fragment">Static typing with powerful type inference</li><li class="fragment">Expression-oriented: everything returns a value</li><li class="fragment">Concise syntax — less boilerplate than Java</li><li class="fragment">Seamless Java interop — use any Java library</li></ul></section><section><h2>Hello, Scala 3!</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Scala 3 top-level definition with @main
+@main def hello(): Unit =
+  println(&quot;Hello, Scala 3!&quot;)
+
+// Classic object-oriented entry point
+object Main extends App:
+  println(&quot;Hello from App trait!&quot;)
+
+// Expression-oriented: if/else returns a value
+val greeting =
+  if System.getenv(&quot;USER&quot;) != null
+  then s&quot;Hello, ${System.getenv(&quot;USER&quot;)}!&quot;
+  else &quot;Hello, World!&quot;
+</code></pre></section></section><section><section><h1>Type System Foundations</h1><h3>Scala's Unified Type Hierarchy</h3></section><section><h2>Unified Type Hierarchy</h2><pre><code class="language-plaintext" data-trim="">                    Any
+                   /     \
+              AnyVal     AnyRef (java.lang.Object)
+             /  |  \      /    |    \
+          Int Double ...  String  List  YourClass
+              Boolean           \    |    /
+                              ... all refs ...
+                                    |
+                                  Null
+                                    |
+                                 Nothing</code></pre><ul><li class="fragment"><code>Any</code> — top type, supertype of everything</li><li class="fragment"><code>AnyVal</code> — value types (Int, Double, Boolean, ...)</li><li class="fragment"><code>AnyRef</code> — reference types (alias for java.lang.Object)</li><li class="fragment"><code>Nothing</code> — bottom type, subtype of everything</li><li class="fragment"><code>Null</code> — subtype of all AnyRef (deprecated in Scala 3)</li></ul></section><section><h2>Type Inference</h2><pre><code class="language-scala" data-trim="" data-noescape="">val x = 42              // Int inferred
+val s = &quot;hello&quot;         // String inferred
+val xs = List(1, 2, 3)  // List[Int] inferred
+
+def add(a: Int, b: Int) = a + b  // Return type Int inferred
+
+// When inference fails or recursion is used, annotate:
+def factorial(n: Int): BigInt =
+  if n &lt;= 1 then BigInt(1)
+  else n * factorial(n - 1)
+
+// Local type inference propagates through chains:
+val result = List(1, 2, 3)
+  .filter(_ &gt; 1)      // List[Int]
+  .map(_.toString)     // List[String]
+  .mkString(&quot;, &quot;)      // String
+</code></pre></section><section><h2>Literal Types (Scala 3)</h2><pre><code class="language-scala" data-trim="" data-noescape="">val x: 42 = 42           // x has type 42, not Int
+val s: &quot;hello&quot; = &quot;hello&quot; // s has type &quot;hello&quot;, not String
+
+type Zero = 0
+type One  = 1
+
+// Useful for type-level programming
+def acceptOnly42(x: 42): Unit = println(s&quot;Got $x&quot;)
+acceptOnly42(42)  // compiles
+// acceptOnly42(43)  // ERROR: Found (43 : Int), Required: (42 : Int)
+
+// Singleton types for compile-time constraints
+inline def constString: &quot;fixed&quot; = &quot;fixed&quot;
+</code></pre></section><section><h2>Union &amp; Intersection Types (Scala 3)</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Union types: A | B — a value is either A or B
+def handle(input: String | Int): String = input match
+  case s: String =&gt; s&quot;String: $s&quot;
+  case i: Int    =&gt; s&quot;Int: $i&quot;
+
+handle(&quot;hello&quot;)  // &quot;String: hello&quot;
+handle(42)       // &quot;Int: 42&quot;
+
+// Intersection types: A &amp; B — a value is both A and B
+trait Resettable:
+  def reset(): Unit
+
+trait Growable[T]:
+  def add(t: T): Unit
+
+def f(x: Resettable &amp; Growable[String]): Unit =
+  x.reset()
+  x.add(&quot;hello&quot;)
+
+// Union replaces overloading; Intersection replaces compound types
+</code></pre></section><section><h2>Opaque Types (Scala 3)</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Zero-cost type abstractions — no boxing at runtime
+object Types:
+  opaque type UserId = Long
+  opaque type Email  = String
+
+  object UserId:
+    def apply(id: Long): UserId = id
+
+  object Email:
+    def apply(e: String): Email = e
+
+  extension (uid: UserId)
+    def value: Long = uid
+
+  extension (email: Email)
+    def domain: String = email.split(&quot;@&quot;).last
+
+import Types.*
+val id    = UserId(42L)
+val email = Email(&quot;user@example.com&quot;)
+email.domain  // &quot;example.com&quot;
+// id + 1     // ERROR: UserId is not Long outside Types
+</code></pre></section></section><section><section><h1>Object-Oriented Scala</h1><h3>Classes, Traits, and Mixins</h3></section><section><h2>Classes &amp; Companion Objects</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Primary constructor in the class signature
+class Person(val name: String, val age: Int):
+  def greet: String = s&quot;Hi, I'm $name&quot;
+  override def toString: String = s&quot;Person($name, $age)&quot;
+
+// Companion object: same name, same file
+// Has access to private members of the class
+object Person:
+  def apply(name: String): Person = Person(name, 0)
+  def fromString(s: String): Option[Person] =
+    s.split(&quot;,&quot;) match
+      case Array(name, age) =&gt; Some(Person(name.trim, age.trim.toInt))
+      case _                =&gt; None
+
+val p = Person(&quot;Alice&quot;)        // uses companion apply
+val q = Person.fromString(&quot;Bob, 30&quot;)  // Option[Person]
+</code></pre></section><section><h2>Traits &amp; Mixins</h2><pre><code class="language-scala" data-trim="" data-noescape="">trait Logging:
+  def log(msg: String): Unit =
+    println(s&quot;[LOG] $msg&quot;)
+
+trait Auditing:
+  def audit(action: String): Unit =
+    println(s&quot;[AUDIT] $action at ${java.time.Instant.now}&quot;)
+
+trait Retrying:
+  def retry[T](n: Int)(f: =&gt; T): T =
+    try f
+    catch case e: Exception =&gt;
+      if n &gt; 1 then retry(n - 1)(f)
+      else throw e
+
+// Mixin composition: combine behaviors
+class Service extends Logging, Auditing, Retrying:
+  def execute(): Unit =
+    log(&quot;Starting service&quot;)
+    audit(&quot;execute&quot;)
+    retry(3) { /* risky operation */ }
+</code></pre></section><section><h2>Enums &amp; Sealed Traits (Scala 3)</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Simple enum
+enum Color:
+  case Red, Green, Blue
+
+// Parameterized enum (replaces sealed trait hierarchies)
+enum Shape:
+  case Circle(radius: Double)
+  case Rectangle(width: Double, height: Double)
+  case Triangle(base: Double, height: Double)
+
+def area(s: Shape): Double = s match
+  case Shape.Circle(r)         =&gt; math.Pi * r * r
+  case Shape.Rectangle(w, h)   =&gt; w * h
+  case Shape.Triangle(b, h)    =&gt; 0.5 * b * h
+  // Compiler warns if a case is missing!
+
+// Enums can have methods and implement traits
+enum Planet(val mass: Double, val radius: Double):
+  case Mercury extends Planet(3.303e+23, 2.4397e6)
+  case Venus   extends Planet(4.869e+24, 6.0518e6)
+  case Earth   extends Planet(5.976e+24, 6.37814e6)
+
+  def surfaceGravity: Double = 6.67300e-11 * mass / (radius * radius)
+</code></pre></section><section><h2>Case Classes</h2><pre><code class="language-scala" data-trim="" data-noescape="">case class Point(x: Double, y: Double)
+
+val p1 = Point(1.0, 2.0)
+val p2 = p1.copy(x = 3.0)      // Point(3.0, 2.0)
+val Point(x, y) = p1            // destructure: x=1.0, y=2.0
+
+// Structural equality (not reference equality)
+println(p1 == Point(1.0, 2.0))  // true
+println(p1.hashCode)            // consistent with equals
+
+// What the compiler generates for you:
+// - apply (factory method)     - unapply (extractor)
+// - copy (with named args)     - equals &amp; hashCode
+// - toString                   - Serializable
+// - Product trait              - all fields are val by default
+</code></pre></section><section><h2>Trait Linearization</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Scala resolves diamond inheritance via C3 linearization
+trait A:
+  def msg: String = &quot;A&quot;
+
+trait B extends A:
+  override def msg: String = &quot;B -&gt; &quot; + super.msg
+
+trait C extends A:
+  override def msg: String = &quot;C -&gt; &quot; + super.msg
+
+class D extends B, C
+
+val d = new D
+println(d.msg)  // &quot;C -&gt; B -&gt; A&quot;
+
+// Linearization order for D:
+// D -&gt; C -&gt; B -&gt; A -&gt; AnyRef -&gt; Any
+// super calls follow this chain right-to-left
+// This is how Scala solves the diamond problem!
+</code></pre></section></section><section><section><h1>Functional Programming</h1><h3>Functions as First-Class Citizens</h3></section><section><h2>First-Class Functions</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Functions are values, assigned to variables
+val double: Int =&gt; Int = x =&gt; x * 2
+val add: (Int, Int) =&gt; Int = _ + _
+
+// Underscore shorthand
+val nums = List(1, 2, 3, 4, 5)
+nums.map(double)         // List(2, 4, 6, 8, 10)
+nums.filter(_ % 2 == 0)  // List(2, 4)
+nums.reduce(_ + _)       // 15
+
+// Function types are syntactic sugar:
+// Int =&gt; Int         is  Function1[Int, Int]
+// (Int, Int) =&gt; Int  is  Function2[Int, Int, Int]
+
+// Functions are objects with an apply method:
+val f = new Function1[Int, Int]:
+  def apply(x: Int): Int = x * 2
+f(5)  // 10
+</code></pre></section><section><h2>Higher-Order Functions</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Functions that take or return functions
+def applyTwice[A](f: A =&gt; A, x: A): A = f(f(x))
+
+applyTwice(_ + 1, 5)           // 7
+applyTwice(_ * 2, 3)           // 12
+applyTwice(_.reverse, &quot;abc&quot;)   // &quot;abc&quot; (reversed twice)
+
+// Functions that return functions
+def multiplier(factor: Int): Int =&gt; Int =
+  (x: Int) =&gt; x * factor
+
+val triple = multiplier(3)
+triple(7)  // 21
+
+// compose and andThen
+val inc: Int =&gt; Int = _ + 1
+val dbl: Int =&gt; Int = _ * 2
+
+val incThenDbl = inc andThen dbl  // first inc, then dbl
+val dblThenInc = inc compose dbl  // first dbl, then inc
+
+incThenDbl(3)  // 8  (3+1=4, 4*2=8)
+dblThenInc(3)  // 7  (3*2=6, 6+1=7)
+</code></pre></section><section><h2>Currying &amp; Partial Application</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Curried function: multiple parameter lists
+def add(x: Int)(y: Int): Int = x + y
+val add5: Int =&gt; Int = add(5)   // partially applied
+add5(3)                          // 8
+
+// Partial application with placeholder
+def log(level: String, msg: String): Unit =
+  println(s&quot;[$level] $msg&quot;)
+
+val warn: String =&gt; Unit = log(&quot;WARN&quot;, _)
+warn(&quot;low memory&quot;)   // [WARN] low memory
+
+// Converting between curried and uncurried
+val f = (a: Int, b: Int, c: Int) =&gt; a + b + c
+val curried   = f.curried          // Int =&gt; Int =&gt; Int =&gt; Int
+val uncurried = curried.uncurried  // (Int, Int, Int) =&gt; Int
+
+curried(1)(2)(3)   // 6
+uncurried(1, 2, 3) // 6
+
+// Multiple parameter lists enable type inference
+def transform[A, B](xs: List[A])(f: A =&gt; B): List[B] = xs.map(f)
+transform(List(1, 2, 3))(_ * 2)  // A inferred as Int from first list
+</code></pre></section><section><h2>Closures &amp; Purity</h2><pre><code class="language-scala" data-trim="" data-noescape="">// A closure captures variables from its enclosing scope
+var counter = 0
+val increment: () =&gt; Int = () =&gt; { counter += 1; counter }
+increment()  // 1
+increment()  // 2
+// increment closes over 'counter' — NOT referentially transparent
+
+// Pure function: same input always gives same output
+val pureIncrement: Int =&gt; Int = n =&gt; n + 1
+// No side effects, no external state — referentially transparent
+
+// Why purity matters:
+// - Safe to parallelize
+// - Easy to test
+// - Easy to reason about (substitution model)
+// - Memoizable
+
+// Scala doesn't enforce purity, but the idiom is:
+// Pure core + impure shell (functional core, imperative shell)
+</code></pre></section><section><h2>Tail Recursion</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.annotation.tailrec
+
+// Naive recursion: blows the stack for large n
+def factorialUnsafe(n: BigInt): BigInt =
+  if n &lt;= 1 then BigInt(1)
+  else n * factorialUnsafe(n - 1)
+
+// Tail-recursive version: constant stack space
+def factorial(n: BigInt): BigInt =
+  @tailrec
+  def loop(acc: BigInt, remaining: BigInt): BigInt =
+    if remaining &lt;= 1 then acc
+    else loop(acc * remaining, remaining - 1)
+  loop(1, n)
+
+factorial(10000)  // No stack overflow!
+
+// @tailrec: compiler ERROR if the call is not in tail position
+// This is a safety net — guarantees the optimization happens
+// Without it, you might silently get a non-tail-recursive function
+</code></pre></section></section><section><section><h1>Algebraic Data Types</h1><h3>&amp; Pattern Matching</h3></section><section><h2>Sum Types &amp; Product Types</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Product type: A AND B (case class = named product)
+case class User(name: String, age: Int)  // String AND Int
+
+// Sum type: A OR B (enum = named sum)
+enum Json:
+  case JNull
+  case JBool(value: Boolean)
+  case JNum(value: Double)
+  case JStr(value: String)
+  case JArr(items: List[Json])
+  case JObj(fields: Map[String, Json])
+
+// ADT = Algebraic Data Type = sum of products
+// This is the fundamental building block of data modeling in FP
+// |Json| = 1 + 2 + |Double| + |String| + |List[Json]| + |Map|
+</code></pre></section><section><h2>Exhaustive Pattern Matching</h2><pre><code class="language-scala" data-trim="" data-noescape="">import Json.*
+
+def render(json: Json): String = json match
+  case JNull        =&gt; &quot;null&quot;
+  case JBool(b)     =&gt; b.toString
+  case JNum(n)      =&gt;
+    if n == n.toLong then n.toLong.toString else n.toString
+  case JStr(s)      =&gt; s&quot;\&quot;$s\&quot;&quot;
+  case JArr(items)  =&gt;
+    items.map(render).mkString(&quot;[&quot;, &quot;, &quot;, &quot;]&quot;)
+  case JObj(fields) =&gt;
+    fields
+      .map((k, v) =&gt; s&quot;\&quot;$k\&quot;: ${render(v)}&quot;)
+      .mkString(&quot;{&quot;, &quot;, &quot;, &quot;}&quot;)
+
+// Compiler WARNS if a case is missing — exhaustivity checking!
+// This is why sealed (enum) types are so powerful:
+// Add a new variant =&gt; compiler tells you every match to update
+</code></pre></section><section><h2>Advanced Pattern Matching</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Nested patterns
+val xs = List(1, 2, 3, 4, 5)
+xs match
+  case Nil                =&gt; &quot;empty&quot;
+  case head :: Nil        =&gt; s&quot;single: $head&quot;
+  case head :: _ :: tail  =&gt; s&quot;at least 2, head=$head&quot;
+
+// Guards
+def classify(x: Int): String = x match
+  case n if n &lt; 0   =&gt; &quot;negative&quot;
+  case 0            =&gt; &quot;zero&quot;
+  case n if n &lt;= 10 =&gt; &quot;small positive&quot;
+  case _            =&gt; &quot;large positive&quot;
+
+// Tuple patterns
+(1, &quot;hello&quot;, true) match
+  case (1, s, _)  =&gt; s&quot;matched: $s&quot;
+  case _          =&gt; &quot;no match&quot;
+
+// Variable binding with @
+List(1, 2, 3) match
+  case all @ (_ :: _ :: _) =&gt; s&quot;at least 2 elements: $all&quot;
+  case _                   =&gt; &quot;less than 2&quot;
+</code></pre></section><section><h2>Custom Extractors</h2><pre><code class="language-scala" data-trim="" data-noescape="">// unapply: enables custom pattern matching
+object Email:
+  def unapply(s: String): Option[(String, String)] =
+    s.split(&quot;@&quot;) match
+      case Array(user, domain) if domain.contains(&quot;.&quot;) =&gt;
+        Some((user, domain))
+      case _ =&gt; None
+
+&quot;user@example.com&quot; match
+  case Email(user, domain) =&gt;
+    println(s&quot;User: $user, Domain: $domain&quot;)
+  case other =&gt;
+    println(s&quot;Not an email: $other&quot;)
+
+// Boolean extractor (no value extracted, just a test)
+object Even:
+  def unapply(n: Int): Boolean = n % 2 == 0
+
+42 match
+  case Even() =&gt; &quot;even&quot;   // matches!
+  case _      =&gt; &quot;odd&quot;
+
+// Extractors decouple pattern matching from data representation
+</code></pre></section></section><section><section><h1>Contextual Abstractions</h1><h3>Given, Using &amp; Type Classes</h3></section><section><h2>Given Instances &amp; Using Clauses</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Scala 3 replaces implicits with given/using
+trait Ordering[T]:
+  def compare(a: T, b: T): Int
+
+given Ordering[Int] with
+  def compare(a: Int, b: Int): Int = a - b
+
+given Ordering[String] with
+  def compare(a: String, b: String): Int = a.compareTo(b)
+
+def max[T](a: T, b: T)(using ord: Ordering[T]): T =
+  if ord.compare(a, b) &gt;= 0 then a else b
+
+max(3, 7)         // 7 — given Ordering[Int] resolved automatically
+max(&quot;cat&quot;, &quot;dog&quot;) // &quot;dog&quot;
+
+// Summon a given explicitly
+val intOrd = summon[Ordering[Int]]
+</code></pre></section><section><h2>The Type Class Pattern</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Step 1: Define the type class (trait with type parameter)
+trait Show[A]:
+  extension (a: A) def show: String
+
+// Step 2: Provide instances for specific types
+given Show[Int] with
+  extension (i: Int) def show: String = i.toString
+
+given Show[String] with
+  extension (s: String) def show: String = s&quot;\&quot;$s\&quot;&quot;
+
+// Step 3: Derive instances from existing ones
+given [A: Show]: Show[List[A]] with
+  extension (xs: List[A]) def show: String =
+    xs.map(_.show).mkString(&quot;[&quot;, &quot;, &quot;, &quot;]&quot;)
+
+// Step 4: Use it
+List(1, 2, 3).show         // &quot;[1, 2, 3]&quot;
+List(&quot;a&quot;, &quot;b&quot;).show         // &quot;[\&quot;a\&quot;, \&quot;b\&quot;]&quot;
+
+// Type classes = ad-hoc polymorphism
+// Add new behaviors to existing types without modifying them
+</code></pre></section><section><h2>Extension Methods</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Add methods to existing types (replacement for implicit classes)
+extension (s: String)
+  def words: List[String] = s.split(&quot;\\s+&quot;).toList
+  def wordCount: Int = words.length
+  def isPalindrome: Boolean = s == s.reverse
+
+&quot;hello world&quot;.words        // List(&quot;hello&quot;, &quot;world&quot;)
+&quot;hello world&quot;.wordCount    // 2
+&quot;racecar&quot;.isPalindrome     // true
+
+// Generic extensions
+extension [A](xs: List[A])
+  def second: Option[A] = xs.drop(1).headOption
+  def penultimate: Option[A] = xs.dropRight(1).lastOption
+  def interleave(ys: List[A]): List[A] =
+    xs.zip(ys).flatMap((a, b) =&gt; List(a, b))
+
+List(1, 2, 3).second              // Some(2)
+List(1, 3, 5).interleave(List(2, 4, 6))  // List(1, 2, 3, 4, 5, 6)
+</code></pre></section><section><h2>Context Bounds &amp; Derives</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Context bound: syntactic sugar for using clauses
+// These two are equivalent:
+def sort1[T](xs: List[T])(using Ordering[T]): List[T] = xs.sorted
+def sort2[T: Ordering](xs: List[T]): List[T] = xs.sorted
+
+// Multiple context bounds
+def process[T: Show: Ordering](xs: List[T]): String =
+  xs.sorted.map(_.show).mkString(&quot;, &quot;)
+
+// derives: automatic type class derivation (Scala 3)
+enum Color derives CanEqual:
+  case Red, Green, Blue
+
+// Custom derivation with Mirror
+case class Config(host: String, port: Int) derives CanEqual
+
+// Implicit conversions (use sparingly!)
+import scala.language.implicitConversions
+
+given Conversion[String, Int] with
+  def apply(s: String): Int = s.toInt
+
+val n: Int = &quot;42&quot;  // implicit conversion applied
+</code></pre></section></section><section><section><h1>Advanced Type System</h1><h3>Variance, Bounds &amp; Higher-Kinded Types</h3></section><section><h2>Variance</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Covariant (+): if A &lt;: B then F[A] &lt;: F[B]
+class Box[+A](val value: A)
+val box: Box[Any] = Box[String](&quot;hello&quot;)  // OK: String &lt;: Any
+
+// Contravariant (-): if A &lt;: B then F[B] &lt;: F[A]
+trait Printer[-A]:
+  def print(a: A): Unit
+
+val anyPrinter: Printer[Any] = new Printer[Any]:
+  def print(a: Any): Unit = println(a)
+
+val strPrinter: Printer[String] = anyPrinter  // OK: reversed!
+
+// Invariant (default): no subtyping relationship
+class MutableBox[A](var value: A)
+// val m: MutableBox[Any] = MutableBox[String](&quot;x&quot;)  // ERROR
+
+// Rule of thumb:
+// Producers are covariant (+)    — List[+A], Option[+A]
+// Consumers are contravariant (-) — Function1[-T, +R]
+// Mutables are invariant          — Array[A]
+</code></pre></section><section><h2>Type Bounds</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Upper bound: T must be a subtype of Comparable[T]
+def maxItem[T &lt;: Comparable[T]](a: T, b: T): T =
+  if a.compareTo(b) &gt;= 0 then a else b
+
+// Lower bound: T must be a supertype of B
+class Stack[+A]:
+  def push[B &gt;: A](item: B): Stack[B] = ???
+  // Returns Stack[B] where B &gt;: A — widens the type
+
+// F-bounded polymorphism: recursive type bounds
+trait Pet[A &lt;: Pet[A]]:
+  def name: String
+  def renamed(newName: String): A  // returns same concrete type!
+
+case class Cat(name: String) extends Pet[Cat]:
+  def renamed(newName: String): Cat = copy(name = newName)
+
+case class Dog(name: String) extends Pet[Dog]:
+  def renamed(newName: String): Dog = copy(name = newName)
+
+val cat: Cat = Cat(&quot;Whiskers&quot;).renamed(&quot;Felix&quot;)  // Cat, not Pet
+</code></pre></section><section><h2>Higher-Kinded Types</h2><pre><code class="language-scala" data-trim="" data-noescape="">// F[_] is a type constructor: takes a type, returns a type
+// List, Option, Future are all type constructors
+
+trait Functor[F[_]]:
+  extension [A](fa: F[A])
+    def fmap[B](f: A =&gt; B): F[B]
+
+given Functor[List] with
+  extension [A](fa: List[A])
+    def fmap[B](f: A =&gt; B): F[B] = fa.map(f)
+
+given Functor[Option] with
+  extension [A](fa: Option[A])
+    def fmap[B](f: A =&gt; B): F[B] = fa.map(f)
+
+// Now we can write generic code over ANY Functor
+def doubleAll[F[_]: Functor](fa: F[Int]): F[Int] =
+  fa.fmap(_ * 2)
+
+doubleAll(List(1, 2, 3))   // List(2, 4, 6)
+doubleAll(Some(5))          // Some(10)
+
+// HKT = abstraction over type constructors
+// This is what enables libraries like Cats and ZIO
+</code></pre></section><section><h2>Path-Dependent Types</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Each instance of a class has its own inner types
+class Database:
+  class Row(val data: Map[String, String])
+
+  def query(sql: String): List[Row] =
+    List(Row(Map(&quot;id&quot; -&gt; &quot;1&quot;, &quot;name&quot; -&gt; &quot;Alice&quot;)))
+
+val db1 = new Database
+val db2 = new Database
+
+val rows1: List[db1.Row] = db1.query(&quot;SELECT *&quot;)
+val rows2: List[db2.Row] = db2.query(&quot;SELECT *&quot;)
+
+// val bad: db2.Row = rows1.head  // ERROR!
+// db1.Row and db2.Row are DIFFERENT types!
+
+// This enables the &quot;cake pattern&quot; and type-safe modularity
+// Each database instance has its own Row type
+// Prevents accidentally mixing rows from different databases
+</code></pre></section><section><h2>Match Types (Scala 3)</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Compute types from other types at compile time
+type Elem[X] = X match
+  case String       =&gt; Char
+  case List[t]      =&gt; t
+  case Array[t]     =&gt; t
+  case Option[t]    =&gt; t
+
+val c: Elem[String]          = 'a'     // Char
+val i: Elem[List[Int]]       = 42      // Int
+val s: Elem[Option[String]]  = &quot;hi&quot;    // String
+
+// Recursive match types
+type Flatten[X] = X match
+  case List[List[t]] =&gt; Flatten[List[t]]
+  case List[t]       =&gt; List[t]
+  case t             =&gt; t
+
+// Match types + inline = compile-time computation
+inline def elemType[X]: String = inline erasedValue[X] match
+  case _: String    =&gt; &quot;Char&quot;
+  case _: List[?]   =&gt; &quot;element of List&quot;
+  case _: Option[?] =&gt; &quot;element of Option&quot;
+</code></pre></section></section><section><section><h1>Effects &amp; Monads</h1><h3>Option, Either, Future &amp; For-Comprehensions</h3></section><section><h2>Option: Handling Absence</h2><pre><code class="language-scala" data-trim="" data-noescape="">def parseInt(s: String): Option[Int] =
+  s.toIntOption
+
+def divide(a: Int, b: Int): Option[Double] =
+  Option.when(b != 0)(a.toDouble / b)
+
+// Chaining with flatMap (monadic bind)
+def compute(a: String, b: String): Option[Double] =
+  parseInt(a).flatMap(x =&gt;
+    parseInt(b).flatMap(y =&gt;
+      divide(x, y)))
+
+// Same thing with for-comprehension (syntactic sugar)
+def computeFor(a: String, b: String): Option[Double] =
+  for
+    x      &lt;- parseInt(a)
+    y      &lt;- parseInt(b)
+    result &lt;- divide(x, y)
+  yield result
+
+computeFor(&quot;10&quot;, &quot;3&quot;)  // Some(3.333...)
+computeFor(&quot;10&quot;, &quot;0&quot;)  // None
+computeFor(&quot;abc&quot;, &quot;3&quot;) // None
+</code></pre></section><section><h2>Either: Typed Errors</h2><pre><code class="language-scala" data-trim="" data-noescape="">enum AppError:
+  case NotFound(id: String)
+  case InvalidInput(msg: String)
+  case Unauthorized
+
+case class User(name: String, age: Int)
+
+def findUser(id: String): Either[AppError, User] =
+  if id == &quot;admin&quot; then Right(User(&quot;admin&quot;, 30))
+  else Left(AppError.NotFound(id))
+
+def validateAge(user: User): Either[AppError, User] =
+  if user.age &gt;= 18 then Right(user)
+  else Left(AppError.InvalidInput(&quot;Must be 18+&quot;))
+
+// For-comprehension chains Either (right-biased since Scala 2.12)
+val result: Either[AppError, String] =
+  for
+    user  &lt;- findUser(&quot;admin&quot;)
+    valid &lt;- validateAge(user)
+  yield s&quot;Welcome, ${valid.name}&quot;
+
+result  // Right(&quot;Welcome, admin&quot;)
+</code></pre></section><section><h2>Try &amp; Future</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.util.{Try, Success, Failure}
+import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
+
+// Try: catch exceptions as values
+val parsed: Try[Int] = Try(&quot;42&quot;.toInt)   // Success(42)
+val failed: Try[Int] = Try(&quot;abc&quot;.toInt)  // Failure(NFE)
+
+parsed.map(_ * 2)           // Success(84)
+failed.recover { case _: NumberFormatException =&gt; 0 }  // Success(0)
+
+// Future: asynchronous computation
+def fetchUser(id: Int): Future[String] = Future {
+  Thread.sleep(100)  // simulate I/O
+  s&quot;user-$id&quot;
+}
+
+// Parallel by default — both start immediately
+val f1 = fetchUser(1)
+val f2 = fetchUser(2)
+val both: Future[(String, String)] = f1.zip(f2)
+
+// Sequence: List[Future[A]] =&gt; Future[List[A]]
+val all = Future.sequence(List(f1, f2))
+</code></pre></section><section><h2>For-Comprehension Desugaring</h2><pre><code class="language-scala" data-trim="" data-noescape="">// This for-comprehension:
+for
+  x &lt;- List(1, 2, 3)
+  y &lt;- List(&quot;a&quot;, &quot;b&quot;)
+  if x &gt; 1
+yield (x, y)
+
+// Desugars EXACTLY to:
+List(1, 2, 3)
+  .flatMap(x =&gt;
+    List(&quot;a&quot;, &quot;b&quot;)
+      .withFilter(_ =&gt; x &gt; 1)
+      .map(y =&gt; (x, y)))
+
+// Result: List((2,a), (2,b), (3,a), (3,b))
+
+// for-comprehensions work with ANY type that has:
+//   map      — for yield
+//   flatMap  — for multiple &lt;- generators
+//   withFilter — for if guards
+//   foreach  — for side-effectful for (no yield)
+
+// This means: Option, Either, Future, List, IO, ZIO, ...
+// All use the SAME syntax!
+</code></pre></section><section><h2>The Monad Abstraction</h2><pre><code class="language-scala" data-trim="" data-noescape="">// A Monad is a type constructor with flatMap + pure
+// that obeys three laws
+
+trait Monad[F[_]]:
+  def pure[A](a: A): F[A]
+
+  extension [A](fa: F[A])
+    def flatMap[B](f: A =&gt; F[B]): F[B]
+    def map[B](f: A =&gt; B): F[B] =
+      fa.flatMap(a =&gt; pure(f(a)))
+
+// The three monad laws:
+// 1. Left identity:  pure(a).flatMap(f) == f(a)
+// 2. Right identity: fa.flatMap(pure)   == fa
+// 3. Associativity:
+//    fa.flatMap(f).flatMap(g) ==
+//    fa.flatMap(a =&gt; f(a).flatMap(g))
+
+// Why care? Monads let you sequence computations
+// while abstracting over the effect:
+//   Option  = might be absent
+//   Either  = might fail with typed error
+//   Future  = might be async
+//   List    = might have multiple results
+//   IO/ZIO  = might do side effects
+</code></pre></section></section><section><section><h1>Metaprogramming</h1><h3>Inline, Macros &amp; Compile-Time Computation</h3></section><section><h2>Inline: Compile-Time Evaluation</h2><pre><code class="language-scala" data-trim="" data-noescape="">// inline: guaranteed to be inlined at compile time
+inline val pi = 3.14159265358979
+
+// inline methods: body is inlined at every call site
+inline def assertPositive(x: Int): Int =
+  if x &lt;= 0 then
+    error(&quot;Expected positive number&quot;)  // compile-time error!
+  else x
+
+val y = assertPositive(5)   // OK, compiles to just 5
+// val z = assertPositive(-1) // ERROR at compile time!
+
+// inline if: branches resolved at compile time
+inline def debugLog(inline msg: String): Unit =
+  inline if scala.compiletime.constValue[false] then
+    println(msg)  // dead code — eliminated entirely
+
+// inline match: pattern matching at compile time
+inline def typeName[T]: String =
+  inline scala.compiletime.erasedValue[T] match
+    case _: Int    =&gt; &quot;Int&quot;
+    case _: String =&gt; &quot;String&quot;
+    case _         =&gt; &quot;Other&quot;
+</code></pre></section><section><h2>Compile-Time Operations</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.compiletime.*
+
+// constValue: extract singleton type values at compile time
+inline def natToInt[N &lt;: Int]: Int = constValue[N]
+val three = natToInt[3]  // 3 — computed at compile time
+
+// constValueTuple: extract tuple of constants
+inline def labels[T &lt;: Tuple]: List[String] =
+  constValueTuple[T].toList.map(_.toString)
+
+type MyLabels = (&quot;name&quot;, &quot;age&quot;, &quot;email&quot;)
+labels[MyLabels]  // List(&quot;name&quot;, &quot;age&quot;, &quot;email&quot;)
+
+// summonInline: summon a given instance at compile time
+inline def showOf[T]: Show[T] = summonInline[Show[T]]
+
+// summonAll: summon all instances for a tuple of types
+inline def showAll[T &lt;: Tuple]: List[Show[?]] =
+  summonAll[Tuple.Map[T, Show]].toList.map(_.asInstanceOf[Show[?]])
+</code></pre></section><section><h2>Quotes &amp; Splices (Macros)</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.quoted.*
+
+// Macros bridge compile-time and run-time
+// '{ expr }  — quote: turn runtime code into a compile-time tree
+// ${ expr }  — splice: turn a compile-time tree into runtime code
+
+// A macro that shows the source code of an expression
+def inspectImpl(expr: Expr[Any])(using Quotes): Expr[String] =
+  val sourceCode = expr.show  // get source representation
+  Expr(s&quot;Expression: $sourceCode&quot;)
+
+// The user-facing inline method
+inline def inspect(inline expr: Any): String =
+  ${ inspectImpl('expr) }
+
+// Usage:
+inspect(1 + 2)          // &quot;Expression: 1.+(2)&quot;
+inspect(List(1).map(x =&gt; x + 1))
+// &quot;Expression: List.apply(1).map(x =&gt; x.+(1))&quot;
+</code></pre></section><section><h2>Mirror-Based Derivation</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.deriving.Mirror
+
+// Mirror provides compile-time structural information about types
+
+// For a product type (case class):
+case class Person(name: String, age: Int)
+// Mirror.ProductOf[Person] provides:
+//   MirroredType       = Person
+//   MirroredElemTypes   = (String, Int)
+//   MirroredElemLabels  = (&quot;name&quot;, &quot;age&quot;)
+//   MirroredLabel       = &quot;Person&quot;
+
+inline def fieldNames[T](using m: Mirror.ProductOf[T]): List[String] =
+  constValueTuple[m.MirroredElemLabels].toList.map(_.toString)
+
+fieldNames[Person]  // List(&quot;name&quot;, &quot;age&quot;)
+
+// For a sum type (enum):
+// Mirror.SumOf provides MirroredElemTypes for all variants
+// This is how libraries like Circe derive JSON codecs automatically
+</code></pre></section></section><section><section><h1>Concurrency</h1><h3>Futures, Actors &amp; Effect Systems</h3></section><section><h2>Futures: Async Building Blocks</h2><pre><code class="language-scala" data-trim="" data-noescape="">import scala.concurrent.*
+import scala.concurrent.duration.*
+import ExecutionContext.Implicits.global
+
+val f1 = Future { Thread.sleep(100); &quot;result1&quot; }
+val f2 = Future { Thread.sleep(100); &quot;result2&quot; }
+
+// Both started immediately — true parallelism
+val combined: Future[(String, String)] = f1.zip(f2)
+
+// Transform results
+val mapped: Future[Int] = f1.map(_.length)
+
+// Sequence: List[Future[A]] =&gt; Future[List[A]]
+val futures = List(Future(1), Future(2), Future(3))
+val all: Future[List[Int]] = Future.sequence(futures)
+
+// Error recovery
+val safe = f1.recover { case _: Exception =&gt; &quot;fallback&quot; }
+val retried = f1.recoverWith { case _ =&gt; Future(&quot;retry&quot;) }
+
+// firstCompletedOf: race multiple futures
+val fastest = Future.firstCompletedOf(List(f1, f2))
+</code></pre></section><section><h2>Akka Typed Actors</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Actor model: message-passing concurrency
+// Each actor has a mailbox, processes one message at a time
+import akka.actor.typed.*
+import akka.actor.typed.scaladsl.*
+
+enum Command:
+  case Greet(name: String, replyTo: ActorRef[String])
+  case Stop
+
+def greeter: Behavior[Command] =
+  Behaviors.receive { (context, message) =&gt;
+    message match
+      case Command.Greet(name, replyTo) =&gt;
+        context.log.info(s&quot;Greeting $name&quot;)
+        replyTo ! s&quot;Hello, $name!&quot;
+        Behaviors.same
+      case Command.Stop =&gt;
+        Behaviors.stopped
+  }
+
+// Actors guarantee:
+// - No shared mutable state
+// - Messages processed sequentially per actor
+// - Location transparency (local or remote)
+</code></pre></section><section><h2>ZIO: Typed Functional Effects</h2><pre><code class="language-scala" data-trim="" data-noescape="">import zio.*
+
+// ZIO[R, E, A]:
+//   R = environment (dependencies)
+//   E = error type
+//   A = success type
+
+val program: ZIO[Any, java.io.IOException, Unit] =
+  for
+    _    &lt;- Console.printLine(&quot;What is your name?&quot;)
+    name &lt;- Console.readLine
+    _    &lt;- Console.printLine(s&quot;Hello, $name!&quot;)
+  yield ()
+
+// Error handling is TYPED — no unchecked exceptions
+def divide(a: Int, b: Int): ZIO[Any, ArithmeticException, Int] =
+  if b == 0 then ZIO.fail(ArithmeticException(&quot;/ by zero&quot;))
+  else ZIO.succeed(a / b)
+
+// Fibers: lightweight green threads (millions possible)
+val parallel = for
+  fiber1 &lt;- longTask1.fork   // starts on a fiber
+  fiber2 &lt;- longTask2.fork
+  r1     &lt;- fiber1.join      // wait for result
+  r2     &lt;- fiber2.join
+yield (r1, r2)
+</code></pre></section><section><h2>Cats Effect: Pure FP Runtime</h2><pre><code class="language-scala" data-trim="" data-noescape="">import cats.effect.*
+
+// IO[A]: a description of a side-effectful computation
+// Nothing runs until the &quot;end of the world&quot; (IOApp)
+val program: IO[Unit] =
+  for
+    _   &lt;- IO.println(&quot;Hello from Cats Effect!&quot;)
+    now &lt;- IO.realTime
+    _   &lt;- IO.println(s&quot;Current time: $now&quot;)
+  yield ()
+
+// Safe resource management with Resource
+def managed: Resource[IO, java.io.InputStream] =
+  Resource.make(
+    IO(java.io.FileInputStream(&quot;file.txt&quot;))
+  )(stream =&gt; IO(stream.close()))
+
+// Structured concurrency
+val parallel: IO[(String, Int)] =
+  (fetchName, fetchAge).parTupled  // runs in parallel
+
+// Cancelation, timeouts, error handling — all composable
+val withTimeout = program.timeout(5.seconds)
+</code></pre></section></section><section><section><h1>Collections Library</h1><h3>Immutable, Lazy &amp; Parallel</h3></section><section><h2>Collection Hierarchy</h2><ul><li class="fragment"><code>Iterable</code> — root of all collections</li><li class="fragment"><code>Seq</code> — ordered: List, Vector, ArraySeq</li><li class="fragment"><code>Set</code> — unique elements: HashSet, TreeSet, BitSet</li><li class="fragment"><code>Map</code> — key-value pairs: HashMap, TreeMap</li><li class="fragment">Immutable by default (<code>scala.collection.immutable</code>)</li><li class="fragment">Mutable available (<code>scala.collection.mutable</code>)</li><li class="fragment">All share a common, uniform API</li></ul></section><section><h2>Immutable Collections</h2><pre><code class="language-scala" data-trim="" data-noescape="">val list = List(1, 2, 3)
+val prepended = 0 :: list          // List(0, 1, 2, 3)
+val appended  = list :+ 4         // List(1, 2, 3, 4)
+val concatenated = list ++ List(4, 5)  // List(1, 2, 3, 4, 5)
+
+val vec = Vector(1, 2, 3)
+val updated = vec.updated(1, 99)  // Vector(1, 99, 3) — O(log32 n)
+
+val m = Map(&quot;a&quot; -&gt; 1, &quot;b&quot; -&gt; 2)
+val m2 = m + (&quot;c&quot; -&gt; 3)          // Map(a-&gt;1, b-&gt;2, c-&gt;3)
+val m3 = m - &quot;a&quot;                  // Map(b -&gt; 2)
+m.get(&quot;a&quot;)                        // Some(1)
+m.get(&quot;z&quot;)                        // None
+
+val s = Set(1, 2, 3, 2, 1)       // Set(1, 2, 3)
+s + 4                             // Set(1, 2, 3, 4)
+s &amp; Set(2, 3, 4)                  // Set(2, 3) — intersection
+s | Set(4, 5)                     // Set(1, 2, 3, 4, 5) — union
+</code></pre></section><section><h2>Transformations</h2><pre><code class="language-scala" data-trim="" data-noescape="">val words = List(&quot;hello&quot;, &quot;world&quot;, &quot;scala&quot;, &quot;is&quot;, &quot;great&quot;)
+
+words.map(_.toUpperCase)          // List(&quot;HELLO&quot;, ...)
+words.flatMap(_.toList)           // List(h, e, l, l, o, ...)
+words.filter(_.length &gt; 4)       // List(&quot;hello&quot;, &quot;world&quot;, &quot;scala&quot;, &quot;great&quot;)
+words.foldLeft(0)(_ + _.length)  // 22 (total characters)
+words.groupBy(_.head)            // Map(h -&gt; List(hello), ...)
+words.zip(LazyList.from(1))      // List((hello,1), (world,2), ...)
+words.sortBy(_.length)           // List(&quot;is&quot;, &quot;scala&quot;, &quot;hello&quot;, ...)
+words.distinct                    // (already distinct)
+words.sliding(2).toList          // List(List(hello,world), ...)
+
+// collect: partial function = filter + map in one step
+List(1, &quot;two&quot;, 3, &quot;four&quot;).collect { case i: Int =&gt; i * 2 }
+// List(2, 6)
+
+// groupMapReduce: group + map + reduce in one pass
+words.groupMapReduce(_.head)(_.length)(_ + _)
+// Map(h -&gt; 5, w -&gt; 5, s -&gt; 5, i -&gt; 2, g -&gt; 5)
+</code></pre></section><section><h2>Lazy Collections &amp; Views</h2><pre><code class="language-scala" data-trim="" data-noescape="">// LazyList: elements computed on demand, memoized
+val fibs: LazyList[BigInt] =
+  BigInt(0) #:: BigInt(1) #::
+    fibs.zip(fibs.tail).map((a, b) =&gt; a + b)
+
+fibs.take(10).toList
+// List(0, 1, 1, 2, 3, 5, 8, 13, 21, 34)
+
+val nats = LazyList.from(1)  // infinite!
+nats.filter(_ % 7 == 0).take(5).toList  // List(7, 14, 21, 28, 35)
+
+// Views: lazy intermediate operations (no intermediate collections)
+(1 to 1_000_000)
+  .view
+  .map(_ * 2)
+  .filter(_ % 6 == 0)
+  .take(5)
+  .toList   // List(6, 12, 18, 24, 30)
+// Only 5 elements actually computed — no million-element intermediaries!
+
+// Iterator: single-pass, non-reusable lazy traversal
+val iter = Iterator.from(1).map(_ * 2).take(5)
+iter.toList  // List(2, 4, 6, 8, 10)
+</code></pre></section><section><h2>Performance Characteristics</h2><div style="display: flex; gap: 2em;"><div style="flex: 1;"><table style="font-size: 0.6em;"><thead><tr><th>Operation</th><th>List</th><th>Vector</th><th>ArraySeq</th></tr></thead><tbody><tr><td>prepend</td><td>O(1)</td><td>O(log n)</td><td>O(n)</td></tr><tr><td>append</td><td>O(n)</td><td>O(log n)</td><td>O(n)</td></tr><tr><td>access(i)</td><td>O(n)</td><td>O(log n)</td><td>O(1)</td></tr><tr><td>update(i)</td><td>O(n)</td><td>O(log n)</td><td>O(n)</td></tr><tr><td>head/tail</td><td>O(1)</td><td>O(log n)</td><td>O(1)/O(n)</td></tr></tbody></table></div><div style="flex: 1;"><ul style="font-size: 0.6em;"><li><b>List</b>: best for head/tail recursion, pattern matching</li><li><b>Vector</b>: best general-purpose (balanced performance)</li><li><b>ArraySeq</b>: best for indexed access</li><li><b>HashMap</b>: O(1) amortized lookup</li><li><b>TreeMap</b>: O(log n) sorted operations</li></ul></div></div></section></section><section><section><h1>The Scala Ecosystem</h1><h3>Libraries, Frameworks &amp; Tools</h3></section><section><h2>Build Tools</h2><ul><li class="fragment"><b>sbt</b> — the standard: interactive, incremental compilation, plugins ecosystem</li><li class="fragment"><b>Mill</b> — simpler config, builds defined in Scala, fast</li><li class="fragment"><b>Gradle</b> — Scala plugin available, good for mixed Java/Scala</li><li class="fragment"><b>scala-cli</b> — lightweight scripting, perfect for single files and experiments</li></ul></section><section><h2>Core Libraries</h2><ul><li class="fragment"><b>Cats</b> — functional abstractions (Monad, Functor, Applicative, ...)</li><li class="fragment"><b>ZIO</b> — effect system with typed errors, fibers, layers</li><li class="fragment"><b>Akka/Pekko</b> — actors, streams, HTTP, clustering</li><li class="fragment"><b>http4s</b> — pure FP HTTP server &amp; client</li><li class="fragment"><b>Circe</b> — JSON encoding/decoding, automatic derivation</li><li class="fragment"><b>Doobie</b> — pure FP JDBC layer</li><li class="fragment"><b>fs2</b> — functional streaming I/O</li><li class="fragment"><b>Chimney</b> — data transformation between case classes</li></ul></section><section><h2>Apache Spark: Distributed Computing</h2><pre><code class="language-scala" data-trim="" data-noescape="">// Spark: the killer app that put Scala on the map
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.*
+
+val spark = SparkSession.builder()
+  .appName(&quot;Analysis&quot;)
+  .master(&quot;local[*]&quot;)
+  .getOrCreate()
+
+import spark.implicits.*
+
+case class Sale(product: String, amount: Double, region: String)
+
+val sales = spark.read.parquet(&quot;sales.parquet&quot;).as[Sale]
+
+// Type-safe dataset operations
+val regionTotals = sales
+  .groupBy($&quot;region&quot;)
+  .agg(
+    sum($&quot;amount&quot;).as(&quot;total&quot;),
+    count(&quot;*&quot;).as(&quot;transactions&quot;)
+  )
+  .orderBy($&quot;total&quot;.desc)
+
+regionTotals.show()
+// Runs distributed across a cluster — same Scala syntax!
+</code></pre></section><section><h2>Scala: Where Types Meet Expressiveness</h2><ul><li class="fragment"><b>Unified OOP + FP</b> — use the right paradigm for each problem</li><li class="fragment"><b>Powerful type system</b> — catch errors at compile time, not runtime</li><li class="fragment"><b>Concise &amp; expressive</b> — say more with less code</li><li class="fragment"><b>Rich ecosystem</b> — from web apps to distributed data processing</li><li class="fragment"><b>Scala 3</b> — cleaner syntax, better tooling, the best version yet</li></ul><br /><p class="fragment" style="text-align: center; font-size: 1.5em;"><b>Thank you!</b></p></section></section></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script><script>
+          Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            plugins: [ RevealHighlight, RevealNotes ],
+            highlight: {
+              highlightOnLoad: true
+            }
+          });
+        </script></body></html>
